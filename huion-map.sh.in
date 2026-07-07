@@ -1,0 +1,29 @@
+#!/bin/sh
+# Restreint le stylet Huion à l'écran Kamvas (@KAMVAS_OUTPUT@) ET reste résident
+# pour ré-appliquer le mapping à chaque (ré)apparition du périphérique.
+#
+# Pourquoi résident : la tablette passe en "mode propriétaire" (règle udev ->
+# uclogic-probe), ce qui RÉ-ÉNUMÈRE l'USB et renomme le device
+# ("...Pen (0)" <-> "...Pen Pen (0)"). Un mapping appliqué une seule fois au login
+# saute donc juste après. On remappe à chaque événement input 'add'.
+OUTPUT="@KAMVAS_OUTPUT@"
+
+# Une seule instance de ce watcher
+for pid in $(pgrep -f "[h]uion-map.sh"); do [ "$pid" != "$$" ] && kill "$pid" 2>/dev/null; done
+
+map() {
+  PEN=$(xinput list --name-only 2>/dev/null | grep -i huion | grep -F "(0)" | head -1)
+  [ -n "$PEN" ] && xinput map-to-output "$PEN" "$OUTPUT" 2>/dev/null
+}
+
+# Tentative initiale (X / device pas forcément prêts au login)
+i=0
+while [ "$i" -lt 30 ]; do
+  if xinput list --name-only 2>/dev/null | grep -qi huion; then map; break; fi
+  sleep 1; i=$((i+1))
+done
+
+# Résident : re-mappe sur chaque ajout de périphérique input
+udevadm monitor --udev --subsystem-match=input 2>/dev/null | while IFS= read -r line; do
+  case "$line" in *add*) sleep 1; map ;; esac
+done

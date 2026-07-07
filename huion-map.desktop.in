@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Huion pen -> Kamvas (@KAMVAS_OUTPUT@)
+Comment=Restreint le stylet Huion à l'écran de la tablette (résident, re-mappe au hotplug)
+Exec=@HOME@/.local/bin/huion-map.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
